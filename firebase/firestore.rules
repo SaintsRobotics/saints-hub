@@ -244,7 +244,18 @@ service cloud.firestore {
 
     // ---------- parts requests ----------
     match /reqs/{id} {
-      allow read: if signed();
+      // A request is seen by: whoever sent it, the director for its kind, core admin while it waits for a director,
+      // mentors once it is approved, the head mentor, the treasurer, the owner, whoever it was handed to, and everyone
+      // (item name only on the page) once it is ordered.
+      allow read: if signed() && (
+        me().r == 'owner'
+        || me().get('ti', '') in ['Head mentor','Treasurer']
+        || resource.data.by == request.auth.uid
+        || resource.data.status == 'ordered'
+        || resource.data.get('ordBy', '') == request.auth.uid
+        || isDirFor(resource.data.kind)
+        || (me().r == 'core' && resource.data.status == 'pending')
+        || (me().r == 'mentor' && resource.data.status in ['approved','delegated','inprogress']));
       allow create: if signed() && okId(id) && me().r != 'mentor' && reqOK(request.resource.data)
         && request.resource.data.keys().hasOnly(['kind','sub','item','vendor','qty','unit','icost','taxp','tax','ship','link','cost','prio','orderBy','needBy','note','info','by','status'])
         && request.resource.data.by == request.auth.uid && request.resource.data.status == 'pending';
@@ -336,8 +347,15 @@ service cloud.firestore {
         // the person who claimed an action item posts a daily update
         || (changed().hasOnly(['did','didOn']) && resource.data.type == 'ai' && resource.data.get('claim', '') == request.auth.uid
             && request.resource.data.did is string && request.resource.data.did.size() < 1000)
+        // an owner can release a claim (used when a person is removed from the site)
+        || (changed().hasOnly(['claim','did','didOn']) && me().r == 'owner' && request.resource.data.claim == '')
         // anyone can claim an unclaimed action item, or release their own claim
         || (changed().hasOnly(['claim']) && resource.data.type == 'ai'
+            && ((request.resource.data.claim == request.auth.uid && resource.data.get('claim', '') == '')
+                || (request.resource.data.claim == '' && resource.data.get('claim', '') == request.auth.uid)))
+        // claiming or releasing also clears the previous person's daily update
+        || (changed().hasOnly(['claim','did','didOn']) && resource.data.type == 'ai'
+            && request.resource.data.get('did', '') == '' && request.resource.data.get('didOn', '') == ''
             && ((request.resource.data.claim == request.auth.uid && resource.data.get('claim', '') == '')
                 || (request.resource.data.claim == '' && resource.data.get('claim', '') == request.auth.uid))));
       allow delete: if wipeOK();

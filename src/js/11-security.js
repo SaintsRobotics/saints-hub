@@ -81,7 +81,7 @@ try{await signInWithEmailAndPassword(auth,u+DOM,pin)}
 catch(e1){if(['auth/too-many-requests','auth/network-request-failed'].includes(e1.code))throw e1;
 let real0='';try{const s=await getDoc(doc(db,'usernames',u));if(s.exists()&&typeof s.data().u=='string')real0=s.data().u}catch(e2){}
 if(!real0)throw e1;await signInWithEmailAndPassword(auth,real0+DOM,pin)}}
-catch(err){simsg=err.code=='auth/too-many-requests'?'Too many tries. Wait a few minutes before trying again, or ask an owner to reset your PIN.':err.code=='auth/network-request-failed'?'No internet connection. Try again.':'That username or PIN is not right.';draw(1)}}
+catch(err){simsg=err.code=='auth/too-many-requests'?'Too many tries. Wait a few minutes before trying again, or ask an owner to reset your PIN.':err.code=='auth/network-request-failed'?'No internet connection. Try again.':'That username or PIN is not right.';if(err&&err.code&&err.code!='auth/network-request-failed'&&err.code!='auth/too-many-requests')simsg+=' (Error code: '+err.code+')';draw(1)}}
 Object.assign(ICN,{'My account':'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4 4-6 8-6s8 2 8 6','Sign out':'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',Arrange:'M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4',Bell:'M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0',Lock:'M5 11h14v10H5zM8 11V7a4 4 0 018 0v4'});
 function sideNav(ts){const o=navItems(ts),u=unread();let h='',rare=false;const mv=(i,n)=>`<span class="dgrip" data-grip="${i}" role="button" tabindex="0" aria-label="Drag to move ${n}. The up and down arrow keys also work." title="Drag to move">&#8942;&#8942;</span>`;
 o.forEach((t,i)=>{if(t=='|'){rare=true;h+=`<div class="dbdiv" data-ri="${i}"><span>${arrange?'Divider line':''}</span>${arrange?mv(i,'the line'):''}</div>`;return}
@@ -100,5 +100,9 @@ let html=(V[tab]||(()=>vCadTab(tab)))(),title=esc(tab);const mm=html.match(/^\s*
 const hr=new Date().getHours(),sub=tab=='Dashboard'?`${hr<12?'Good morning':hr<18?'Good afternoon':'Good evening'}, ${esc(me().n)}. ${fl(TODAY)}`:tab=='Wiki'?"The team's shared notes. Anyone can start or improve a page.":fl(TODAY);
 $('#app').innerHTML=shell(ts,title,sub,coBar()+(msg?`<div class="dbmsg" role="alert">${esc(msg)}</div>`:'')+(okmsg?`<div class="dbmsg ok" role="status">${esc(okmsg)}</div>`:'')+(tab!='Dashboard'?helpBanner():'')+html);
 document.querySelectorAll('#app input:not([type]),#app input[type=text],#app textarea').forEach(el=>{if(el.maxLength<0)el.maxLength=el.tagName=='TEXTAREA'?(el.id=='wbody'?20000:2000):200})}
-function draw(f){TODAY=new Date().toLocaleDateString('en-CA');const x=document.activeElement;if(!f&&x&&x.closest&&x.closest('#app')&&['INPUT','SELECT','TEXTAREA'].includes(x.tagName))return;const sd=document.querySelector('.dbside'),sy=sd?sd.scrollTop:0;renderApp();const sn=document.querySelector('.dbside');if(sn&&sy)sn.scrollTop=sy}
+function draw(f){TODAY=new Date().toLocaleDateString('en-CA');const x=document.activeElement;if(!f&&x&&x.closest&&x.closest('#app')&&['INPUT','SELECT','TEXTAREA'].includes(x.tagName))return;const sd=document.querySelector('.dbside'),sy=sd?sd.scrollTop:0;
+/* f==2: a background redraw (not caused by the person) that must not wipe a half-typed box */
+let keep=null;if(f==2&&x&&x.id&&x.closest&&x.closest('#app')&&['INPUT','TEXTAREA'].includes(x.tagName)&&!['checkbox','radio','button','submit'].includes(x.type))keep={id:x.id,v:x.value,a:x.selectionStart,b:x.selectionEnd};
+renderApp();const sn=document.querySelector('.dbside');if(sn&&sy)sn.scrollTop=sy;
+if(keep){const y=document.getElementById(keep.id);if(y&&y.value!==keep.v){y.value=keep.v}if(y){try{y.focus({preventScroll:true});y.setSelectionRange(keep.a,keep.b)}catch(e){}}}}
 function render(){draw(1);syncOut()}

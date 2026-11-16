@@ -30,18 +30,23 @@ last[name]=J(cur);return Promise.all(ops)}
 let syncing=Promise.resolve();
 function syncOut(){if(screen!='app'||!byId(real)||!db)return;log.forEach(e=>{if(!e.id)e.id=uidn()});
 const run=()=>Promise.all([pushMap('users','users',ent(people,F.users)),pushMap('tasks','tasks',ent(tasks,F.tasks,hm)),pushMap('reqs','reqs',ent(reqs,F.reqs)),pushMap('events','events',ent(events,F.events)),pushMap('comp','comp',ent(comp,CF)),pushMap('notes','notes',ent(notes,F.notes)),pushMap('log','log',ent(log,F.log),{nodel:1}),pushMap('wins','wins',ent(wins,F.wins),{nodel:1}),pushMap('wiki','wiki',ent(wiki,F.wiki),{nodel:1}),pushMap('wrev','wrev',ent(wrevs,F.wrev),{nodel:1}),pushMap('att','attendance',attMap(),{keep:1}),pushMap('days','days',cl(days)),pushMap('av','avail',cl(av)),pushMap('ri','ritems',riMap()),pushMap('meta','retro',metaMap(),{up:1}),pushMap('cfg','config',cfgMap(),{up:1}),pushMap('season','season',seasonMap()),pushMap('cad','cadsub',ent(cad,CADF)),pushMap('cadms','cadms',ent(cadms,CMF))]);
-syncing=syncing.then(run).catch(e=>{msg=friendly(e);draw(1)})}
+syncing=syncing.then(run).catch(e=>{msg=friendly(e);draw(2)})}
 const friendly=e=>e&&e.code=='permission-denied'?'The database did not allow that change. Your change was not saved. If you think you should be able to do this, tell an owner.':(e&&(e.message||e.code))||String(e);
 function derive(){const ds=Object.keys(att).filter(d=>d!=TODAY).sort().reverse(),tod=att[TODAY]||[];
 people.forEach(p=>{p.in=tod.includes(p.id);let m=0;p.last='Not yet';for(const d of ds.filter(d=>d>=(p.added||''))){if(att[d].includes(p.id)){p.last=fd(d);break}m++}p.missed=m})}
 let wrRecent=[],wrPage=[];
 const mergeWr=()=>{const m=new Map();wrRecent.concat(wrPage).forEach(x=>m.set(x.id,x));wrevs=[...m.values()];base('wrev',ent(wrevs,F.wrev))};
 function listen(rl,uid){let wsub=null;const e=x=>console.error(x),on=(q,f)=>unsub.push(onSnapshot(q,f,e)),nm=!['member'].includes(rl);
-on(collection(db,'users'),q=>{people=q.docs.map(d=>({id:d.id,...san(d.data())}));base('users',ent(people,F.users));derive();draw();claimHead()});
+on(collection(db,'users'),q=>{people=q.docs.map(d=>({id:d.id,...san(d.data())}));base('users',ent(people,F.users));derive();const mm=people.find(p=>p.id==uid);if(mm)rqStart(mm);draw();claimHead()});
 on(collection(db,'tasks'),q=>{tasks=q.docs.map(d=>{const x={id:d.id,...san(d.data())};x.help=Object.entries(x.helpMap||{}).map(([id,r])=>({id,r}));return x});base('tasks',ent(tasks,F.tasks,hm));draw()});
 let ss=null;const subSeason=()=>{if(ss)return;ss=onSnapshot(collection(db,'season'),q=>{season=[];sCfg={};q.docs.forEach(d=>{const x=san(d.data());if(d.id=='cfg')sCfg=x;else season.push({id:d.id,...x})});base('season',seasonMap());draw()},err=>{ss=null;season=[];sCfg={};last.season=undefined;console.error(err);draw()})};unsub.push(()=>{if(ss)ss();ss=null});
 on(doc(db,'config','main'),d=>{const c=d.data()||{};seasonOpen=!!c.seasonOpen;if(seasonOpen&&rl=='member')subSeason();rule=c.rule||2;IDLE_MIN=[5,10,15,30].includes(c.idle)?c.idle:15;headUid=c.headMentorUid||'';base('cfg',cfgMap());derive();draw();claimHead()});
-on(collection(db,'reqs'),q=>{reqs=q.docs.map(d=>({id:d.id,...san(d.data())}));base('reqs',ent(reqs,F.reqs));draw()});
+/* Parts requests: each person only asks the database for the requests they are allowed to see (the rules enforce the same list). */
+const rqP={};let rqSig='',rqU=[];const rqMerge=()=>{const m=new Map();Object.values(rqP).forEach(a=>a.forEach(x=>m.set(x.id,x)));reqs=[...m.values()];base('reqs',ent(reqs,F.reqs));draw()};
+const rqStop=()=>{rqU.forEach(f=>f());rqU=[];Object.keys(rqP).forEach(k=>delete rqP[k])};
+const rqStart=m=>{const sig=[m.r,m.ti||''].join('|');if(sig==rqSig)return;rqSig=sig;rqStop();const C=collection(db,'reqs'),w=(f,v)=>query(C,where(f,'==',v));let qs;
+if(m.r=='owner'||['Head mentor','Treasurer'].includes(m.ti))qs=[['all',C]];else{qs=[['own',w('by',uid)],['ord',w('status','ordered')],['to',w('ordBy',uid)]];if(m.ti=='Director of engineering')qs.push(['de',w('kind','eng')]);if(m.ti=='Director of communications')qs.push(['dc',w('kind','comm')]);if(m.r=='core')qs.push(['core',w('status','pending')]);if(m.r=='mentor')['approved','delegated','inprogress'].forEach(s=>qs.push(['m'+s,w('status',s)]))}
+qs.forEach(([k,q])=>{rqP[k]=[];rqU.push(onSnapshot(q,s=>{rqP[k]=s.docs.map(d=>({id:d.id,...san(d.data())}));rqMerge()},e))});rqMerge()};unsub.push(rqStop);
 if(['owner','mentor','core','admin'].includes(rl))on(collection(db,'comp'),q=>{comp=q.docs.map(d=>({id:d.id,...san(d.data())}));base('comp',ent(comp,CF));draw()});
 on(collection(db,'events'),q=>{events=q.docs.map(d=>({id:d.id,...san(d.data())}));base('events',ent(events,F.events));draw()});
 on(collection(db,'cadsub'),q=>{cad=q.docs.map(d=>({id:d.id,...san(d.data())}));base('cad',ent(cad,CADF));draw()});

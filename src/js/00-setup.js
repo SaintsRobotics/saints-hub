@@ -9,4 +9,4 @@ let app=null,auth=null,db=null;
 if(CONFIGURED){app=initializeApp(cfg);auth=getAuth(app);db=getFirestore(app)}
 const DOM='@saints1899.example';
 window.addEventListener("error",function(ev){var a=document.getElementById("app");if(a&&!a.querySelector(".db,.si")){var p=document.createElement("p");p.style.cssText="max-width:560px;margin:0 auto;padding:0 24px;font:15px system-ui;color:#b3261e";p.textContent="Error: "+ev.message;a.appendChild(p)}});
-window.addEventListener('unhandledrejection',ev=>{const r=ev.reason;if(r&&(r.code||'').startsWith('auth/'))return;msg=(r&&r.message)||String(r);try{draw(1)}catch(e){}});
+window.addEventListener('unhandledrejection',ev=>{const r=ev.reason;if(r&&(r.code||'').startsWith('auth/'))return;msg=(r&&r.message)||String(r);try{draw(2)}catch(e){}});

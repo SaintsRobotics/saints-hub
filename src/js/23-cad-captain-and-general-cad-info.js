@@ -10,7 +10,7 @@ const cadTasks=s=>tasks.filter(k=>k.cad==s.id);
 const cadAll=()=>tasks.filter(k=>k.cad&&cad.some(s=>s.id==k.cad));
 const dleft=d=>d?Math.round((new Date(d+'T12:00:00')-new Date(TODAY+'T12:00:00'))/864e5):null;
 const dlChip=d=>{if(!d)return '<span class="b">No deadline yet</span>';const n=dleft(d);return `<span class="b ${n<0?'':n<=3?'s-progress':'s-done'}">Deadline ${fd(d)}${n>0?': '+n+' day'+(n==1?'':'s')+' left':n==0?': today':': passed'}</span>`};
-let cx={col:{},open:'',add:false,name:'',del:'',pick:{},q:{},cas:{},ms:{t:'',d:'',n:''}};
+let cx={ren:'',rname:'',col:{},open:'',add:false,name:'',del:'',pick:{},q:{},cas:{},ms:{t:'',d:'',n:''}};
 Object.assign(ICN,{'Captains view':'M4 20V10M10 20V4M16 20v-7M22 20H2','General CAD Info':'M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10'});
 const cadTiles=(tk,id)=>{const open=tk.filter(k=>k.s!='done'),dN=k=>k.due?dleft(k.due):99,tile=(n,l,c,ls)=>tileB(id,n,l,c,ls),dn=tk.filter(k=>k.s=='done');
 return `<div class="tiles">${tile(tk.filter(k=>k.s=='blocked'),'Blocked tasks','s-blocked')}${tile(open.filter(k=>dN(k)<=7),'Due within a week','s-progress')}${tile(open.filter(k=>(Date.now()-((k.lc||{}).at||0))/864e5>=dx),'No change in '+dx+' day(s)')}${tile(dn.length+' of '+tk.length,'Tasks done','s-done',dn)}</div>${tdetail(id)}`};
@@ -27,7 +27,7 @@ ${qs.length?`<section><h3>Questions from the CAD captain</h3>${mine?qs.map(qf).j
 const vCadTab=t=>{const m=me(),s=cad.find(x=>cadTab(x.name)==t&&(x.mem||[]).includes(m.id));return s?`<h2>${esc(s.name)} CAD</h2>`+cadView(s,m,0):'<h2>'+esc(t)+'</h2><p class="mut">This page is not available.</p>'};
 const cxIn=(id,f,ph,tag)=>tag=='ta'?`<textarea data-cxc="${id}:${f}" rows="2" maxlength="900" placeholder="${ph}">${esc((cx.cas[id]||{})[f]||'')}</textarea>`:`<input data-cxc="${id}:${f}" maxlength="120" placeholder="${ph}" value="${esc((cx.cas[id]||{})[f]||'')}">`;
 function cxWidget(s,ed){const ppl=cadPeople(s),tk=cadTasks(s),c=cx.cas[s.id]||{},q=cx.q[s.id]||{t:'one'},pool=people.filter(p=>!isMentor(p)&&!(s.mem||[]).includes(p.id)).sort((a,b)=>a.n.localeCompare(b.n)),an=s.ans||{};
-return `<section class="cxs"><div class="row"><div><b style="font-size:20px">${esc(s.name)} CAD</b> <button class="lnk" data-cxopen="${s.id}">Open the group page</button> <button data-cxcol="${s.id}" aria-expanded="${!cx.col[s.id]}">${cx.col[s.id]?'Show details':'Minimize'}</button></div><div>${ed?`<label>Deadline <input type="date" data-cxdue="${s.id}" value="${esc(s.due||'')}"></label>`:dlChip(s.due)}</div></div>${cx.col[s.id]?`<p class="mut">${ppl.length} ${ppl.length==1?'person':'people'}, ${tk.filter(k=>k.s=='done').length} of ${tk.length} tasks done. ${dlChip(s.due)}</p>`:`
+return `<section class="cxs"><div class="row"><div><b style="font-size:20px">${esc(s.name)} CAD</b> <button class="lnk" data-cxopen="${s.id}">Open the group page</button> <button data-cxcol="${s.id}" aria-expanded="${!cx.col[s.id]}">${cx.col[s.id]?'Show details':'Minimize'}</button>${ed&&cx.ren!=s.id?` <button data-cxren="${s.id}">Rename</button>`:''}${ed&&cx.ren==s.id?`<div class="row" style="justify-content:flex-start;margin-top:6px"><input data-cxrname maxlength="30" aria-label="New name for ${esc(s.name)} CAD" value="${esc(cx.rname)}"> <button class="sel" data-cxrok="${s.id}">Save name</button> <button data-cxrx>Cancel</button></div>`:''}</div><div>${ed?`<label>Deadline <input type="date" data-cxdue="${s.id}" value="${esc(s.due||'')}"></label>`:dlChip(s.due)}</div></div>${cx.col[s.id]?`<p class="mut">${ppl.length} ${ppl.length==1?'person':'people'}, ${tk.filter(k=>k.s=='done').length} of ${tk.length} tasks done. ${dlChip(s.due)}</p>`:`
 ${cadTiles(tk,'w'+s.id)}
 <h3>People</h3><p>${ppl.map(p=>`<span class="b">${esc(p.n)}${ed?` <button class="sx2" data-cxmrm="${s.id}:${p.id}" aria-label="Remove ${esc(p.n)}">&times;</button>`:''}</span>`).join(' ')||'<span class="mut">No one yet.</span>'}</p>
 ${ed?`<div class="row" style="justify-content:flex-start"><select data-cxpick="${s.id}"><option value="">Add a person</option>${pool.map(p=>`<option value="${p.id}" ${cx.pick[s.id]==p.id?'selected':''}>${esc(p.n)}</option>`).join('')}</select><button data-cxmadd="${s.id}">Add to ${esc(s.name)} CAD</button></div><p class="mut">They get a "${esc(s.name)} CAD" page in their side menu.</p>`:''}
@@ -57,6 +57,7 @@ document.addEventListener('input',e=>{const t=e.target;if(!t||!t.dataset)return;
 if(d.cxc){const[i,f]=d.cxc.split(':');(cx.cas[i]=cx.cas[i]||{s:'todo'})[f]=t.value}
 else if(d.cxq){const[i,f]=d.cxq.split(':');(cx.q[i]=cx.q[i]||{t:'one'})[f]=t.value}
 else if('cxname' in d)cx.name=t.value
+else if('cxrname' in d)cx.rname=t.value
 else if(d.cxms)cx.ms[d.cxms]=t.value});
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.dataset)return;const d=t.dataset;
 if(d.cxc){const[i,f]=d.cxc.split(':');(cx.cas[i]=cx.cas[i]||{s:'todo'})[f]=t.value}
@@ -74,6 +75,9 @@ if('cxback' in d){cx.open='';draw(1);return}
 if(!ed)return;
 if('cxnew' in d){cx.add=!cx.add;draw(1);return}
 if('cxmk' in d){const n=cadClean(cx.name);if(!n){msg='Type a name for the subsystem.';draw(1);return}if(cad.some(s=>s.name.toLowerCase()==n.toLowerCase())){msg='There is already a subsystem with that name.';draw(1);return}cad.push({id:uidn(),name:n,due:'',mem:[],qs:[],ans:{}});ev('Added the CAD subsystem "'+n+'"');cx.name='';cx.add=false;okmsg=n+' CAD was added. Add people to it below.';render();return}
+if('cxren' in d){const s=S(d.cxren);if(s&&ed){cx.ren=s.id;cx.rname=s.name;draw(1)}return}
+if('cxrx' in d){cx.ren='';draw(1);return}
+if('cxrok' in d){const s=S(d.cxrok);if(!s||!ed)return;const n=cadClean(cx.rname);if(!n){msg='Type a name for the subsystem.';draw(1);return}if(cad.some(x=>x.id!=s.id&&x.name.toLowerCase()==n.toLowerCase())){msg='There is already a subsystem with that name.';draw(1);return}if(n!=s.name){const o=s.name;if(tab==cadTab(o))tab=cadTab(n);s.name=n;ev('Renamed the CAD subsystem "'+o+'" to "'+n+'"');okmsg='Renamed to '+n+' CAD.'}cx.ren='';render();return}
 if('cxdel' in d){cx.del=d.cxdel;draw(1);return}
 if('cxdx' in d){cx.del='';draw(1);return}
 if('cxdok' in d){const s=S(d.cxdok);if(s){cad=cad.filter(x=>x.id!=s.id);ev('Deleted the CAD subsystem "'+s.name+'"')}cx.del='';render();return}
