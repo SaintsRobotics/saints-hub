@@ -2,10 +2,10 @@
 // Paste your own values between the quotes (see SETUP.md, Part 3).
 // These values are not secrets. The database rules protect the data.
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAC-DRqz1_iKMn86rOE49YpJSR0yo3wxlk",
-  authDomain: "saints-1899-hub-595b4.firebaseapp.com",
-  projectId: "saints-1899-hub-595b4",
-  storageBucket: "saints-1899-hub-595b4.firebasestorage.app",
-  messagingSenderId: "455920212919",
-  appId: "1:455920212919:web:b800b89aba3607c6b76632"
+  apiKey: "AIzaSyCBnnkRXL0SSXlqxZVvAuHkc_WLU3TI2mc",
+  authDomain: "saints-hub.firebaseapp.com",
+  projectId: "saints-hub",
+  storageBucket: "saints-hub.firebasestorage.app",
+  messagingSenderId: "748455437329",
+  appId: "1:748455437329:web:2cb7f62abb92377620bdb0"
 };
