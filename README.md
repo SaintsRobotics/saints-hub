@@ -1,6 +1,6 @@
 # Saints 1899 Team Hub
 
-The team site at https://hamza-abdalla.github.io/saints-hub/ . Data lives in Firebase (Auth and Firestore). No names or rosters are ever stored in this repository.
+The team site at https://saintsrobotics.github.io/saints-hub/. Data lives in Firebase (Auth and Firestore). No names or rosters are ever stored in this repository.
 
 ## Layout
 
